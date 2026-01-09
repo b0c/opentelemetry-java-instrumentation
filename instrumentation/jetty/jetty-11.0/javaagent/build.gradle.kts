@@ -31,4 +31,5 @@ otelJava {
 
 tasks.test {
   systemProperty("collectMetadata", findProperty("collectMetadata")?.toString() ?: "false")
+  systemProperty("otel.instrumentation.servlet.experimental-span-attributes", "true")
 }

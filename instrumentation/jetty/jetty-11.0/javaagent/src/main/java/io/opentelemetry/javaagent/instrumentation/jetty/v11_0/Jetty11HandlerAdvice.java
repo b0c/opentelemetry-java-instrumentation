@@ -6,6 +6,7 @@
 package io.opentelemetry.javaagent.instrumentation.jetty.v11_0;
 
 import static io.opentelemetry.javaagent.instrumentation.jetty.v11_0.Jetty11Singletons.helper;
+import static io.opentelemetry.javaagent.instrumentation.jetty.v11_0.Jetty11Singletons.shouldCaptureRequestBody;
 
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
@@ -64,8 +65,11 @@ public class Jetty11HandlerAdvice {
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static AdviceScope onEnter(
       @Advice.This Object source,
-      @Advice.Argument(2) HttpServletRequest request,
+      @Advice.Argument(value = 2, readOnly = false) HttpServletRequest request,
       @Advice.Argument(3) HttpServletResponse response) {
+    if (shouldCaptureRequestBody() && !(request instanceof CachingHttpServletRequest)) {
+      request = new CachingHttpServletRequest(request);
+    }
     return AdviceScope.start(source, request, response);
   }
 

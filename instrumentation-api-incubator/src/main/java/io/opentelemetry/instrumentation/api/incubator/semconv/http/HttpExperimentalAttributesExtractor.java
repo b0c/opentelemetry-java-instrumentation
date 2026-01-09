@@ -26,6 +26,10 @@ public final class HttpExperimentalAttributesExtractor<REQUEST, RESPONSE>
       AttributeKey.longKey("http.request.body.size");
   static final AttributeKey<Long> HTTP_RESPONSE_BODY_SIZE =
       AttributeKey.longKey("http.response.body.size");
+  static final AttributeKey<String> HTTP_REQUEST_BODY =
+      AttributeKey.stringKey("http.request.body");
+
+  private static final int MAX_REQUEST_BODY_LENGTH = 4096;
 
   // copied from UrlIncubatingAttributes
   private static final AttributeKey<String> URL_TEMPLATE = AttributeKey.stringKey("url.template");
@@ -66,6 +70,9 @@ public final class HttpExperimentalAttributesExtractor<REQUEST, RESPONSE>
       @Nullable RESPONSE response,
       @Nullable Throwable error) {
 
+    String requestBody = requestBody(request);
+    internalSet(attributes, HTTP_REQUEST_BODY, requestBody);
+
     Long requestBodySize = requestBodySize(request);
     internalSet(attributes, HTTP_REQUEST_BODY_SIZE, requestBodySize);
 
@@ -102,5 +109,28 @@ public final class HttpExperimentalAttributesExtractor<REQUEST, RESPONSE>
       // not a number
       return null;
     }
+  }
+
+  @Nullable
+  private String requestBody(REQUEST request) {
+    if (!(getter instanceof HttpRequestBodyGetter)) {
+      return null;
+    }
+    @SuppressWarnings("unchecked")
+    // safe cast due to check above
+    HttpRequestBodyGetter<REQUEST> bodyGetter = (HttpRequestBodyGetter<REQUEST>) getter;
+    String body = bodyGetter.getHttpRequestBody(request);
+    if (body == null) {
+      return null;
+    }
+    if (body.length() > MAX_REQUEST_BODY_LENGTH) {
+      return body.substring(0, MAX_REQUEST_BODY_LENGTH) + "... [truncated]";
+    }
+    return body;
+  }
+
+  public interface HttpRequestBodyGetter<REQUEST> {
+    @Nullable
+    String getHttpRequestBody(REQUEST request);
   }
 }

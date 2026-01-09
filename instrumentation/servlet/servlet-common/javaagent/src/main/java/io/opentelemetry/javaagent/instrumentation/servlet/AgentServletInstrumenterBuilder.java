@@ -38,6 +38,9 @@ public final class AgentServletInstrumenterBuilder<REQUEST, RESPONSE> {
   private final List<ContextCustomizer<? super ServletRequestContext<REQUEST>>> contextCustomizers =
       new ArrayList<>();
 
+  private HttpServerAttributesGetter<ServletRequestContext<REQUEST>,
+          ServletResponseContext<RESPONSE>> experimentalHttpAttributesGetter;
+
   private boolean propagateOperationListenersToOnEnd;
 
   public static <REQUEST, RESPONSE> AgentServletInstrumenterBuilder<REQUEST, RESPONSE> create() {
@@ -57,6 +60,14 @@ public final class AgentServletInstrumenterBuilder<REQUEST, RESPONSE> {
     return this;
   }
 
+  @CanIgnoreReturnValue
+  public AgentServletInstrumenterBuilder<REQUEST, RESPONSE> setHttpExperimentalAttributesGetter(
+      HttpServerAttributesGetter<ServletRequestContext<REQUEST>,
+              ServletResponseContext<RESPONSE>> experimentalHttpAttributesGetter) {
+    this.experimentalHttpAttributesGetter = experimentalHttpAttributesGetter;
+    return this;
+  }
+
   public Instrumenter<ServletRequestContext<REQUEST>, ServletResponseContext<RESPONSE>> build(
       String instrumentationName,
       ServletAccessor<REQUEST, RESPONSE> accessor,
@@ -69,6 +80,9 @@ public final class AgentServletInstrumenterBuilder<REQUEST, RESPONSE> {
             .captureRequestParameters(CAPTURE_REQUEST_PARAMETERS)
             .setCaptureExperimentalAttributes(CAPTURE_EXPERIMENTAL_ATTRIBUTES)
             .setCaptureEnduserId(AgentCommonConfig.get().getEnduserConfig().isIdEnabled());
+    if (experimentalHttpAttributesGetter != null) {
+      builder.setHttpExperimentalAttributesGetter(experimentalHttpAttributesGetter);
+    }
     for (ContextCustomizer<? super ServletRequestContext<REQUEST>> contextCustomizer :
         contextCustomizers) {
       builder.addContextCustomizer(contextCustomizer);

@@ -8,6 +8,7 @@ package io.opentelemetry.instrumentation.servlet.internal;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.api.incubator.builder.internal.DefaultHttpServerInstrumenterBuilder;
+import io.opentelemetry.instrumentation.api.incubator.semconv.http.HttpExperimentalAttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.ContextCustomizer;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
@@ -29,6 +30,8 @@ public final class ServletInstrumenterBuilder<REQUEST, RESPONSE> {
   private boolean propagateOperationListenersToOnEnd;
   private boolean captureExperimentalAttributes;
   private boolean captureEnduserId;
+  private HttpServerAttributesGetter<ServletRequestContext<REQUEST>,
+          ServletResponseContext<RESPONSE>> experimentalHttpAttributesGetter;
   private final List<String> captureRequestParameters = new ArrayList<>();
 
   private final DefaultHttpServerInstrumenterBuilder<
@@ -89,6 +92,14 @@ public final class ServletInstrumenterBuilder<REQUEST, RESPONSE> {
   }
 
   @CanIgnoreReturnValue
+  public ServletInstrumenterBuilder<REQUEST, RESPONSE> setHttpExperimentalAttributesGetter(
+      HttpServerAttributesGetter<ServletRequestContext<REQUEST>,
+              ServletResponseContext<RESPONSE>> experimentalHttpAttributesGetter) {
+    this.experimentalHttpAttributesGetter = experimentalHttpAttributesGetter;
+    return this;
+  }
+
+  @CanIgnoreReturnValue
   public ServletInstrumenterBuilder<REQUEST, RESPONSE> propagateOperationListenersToOnEnd() {
     propagateOperationListenersToOnEnd = true;
     return this;
@@ -113,6 +124,10 @@ public final class ServletInstrumenterBuilder<REQUEST, RESPONSE> {
                 requestParametersExtractor =
                     new ServletRequestParametersExtractor<>(accessor, captureRequestParameters);
             builder.addAttributesExtractor(requestParametersExtractor);
+          }
+          if (captureExperimentalAttributes && experimentalHttpAttributesGetter != null) {
+            builder.addAttributesExtractor(
+                HttpExperimentalAttributesExtractor.create(experimentalHttpAttributesGetter));
           }
           for (ContextCustomizer<? super ServletRequestContext<REQUEST>> contextCustomizer :
               contextCustomizers) {
