@@ -33,11 +33,11 @@ public final class Jetty11Singletons {
             .addContextCustomizer(
                 (context, request, attributes) -> new AppServerBridge.Builder().init(context))
             .propagateOperationListenersToOnEnd();
-    
+  
     if (CAPTURE_EXPERIMENTAL_ATTRIBUTES) {
       builder.setHttpExperimentalAttributesGetter(new Jetty11ExperimentalHttpAttributesGetter());
     }
-    
+  
     INSTRUMENTER = builder.build(INSTRUMENTATION_NAME, Servlet5Accessor.INSTANCE);
   }
 
